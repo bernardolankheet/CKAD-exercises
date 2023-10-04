@@ -11,20 +11,27 @@ kubernetes.io > Documentation > Tasks > Access Applications in a Cluster > [Acce
 
 kubernetes.io > Documentation > Tasks > Access Applications in a Cluster > [Use Port Forwarding to Access Applications in a Cluster](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/)
 
-### Create a namespace called 'mynamespace' and a pod with image nginx called nginx on this namespace
+### Prepair
+```
+alias k=kubectl
+```
+
+
+### Create a pod with name 'frontend' with image latest nginx in namespace called 'prod'.
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-kubectl create namespace mynamespace
-kubectl run nginx --image=nginx --restart=Never -n mynamespace
+kubectl create namespace prod
+kubectl run frontend --image=nginx:latest --restart=Never -n prod
+kubectl -n prod get pod/frontend
 ```
 
 </p>
 </details>
 
-### Create the pod that was just described using YAML
+### Create the pod 'web-app' in namespace 'prod' that was just described using YAML
 
 <details><summary>show</summary>
 <p>
@@ -32,11 +39,13 @@ kubectl run nginx --image=nginx --restart=Never -n mynamespace
 Easily generate YAML with:
 
 ```bash
-kubectl run nginx --image=nginx --restart=Never --dry-run=client -n mynamespace -o yaml > pod.yaml
+kubectl get ns
+kubectl create ns prod
+kubectl run web-app --image=nginx --restart=Never --dry-run=client -n prod -o yaml > web-app.yaml
 ```
 
 ```bash
-cat pod.yaml
+cat web-app.yaml
 ```
 
 ```yaml
@@ -45,14 +54,13 @@ kind: Pod
 metadata:
   creationTimestamp: null
   labels:
-    run: nginx
-  name: nginx
-  namespace: mynamespace
+    run: web-app
+  name: web-app
+  namespace: prod
 spec:
   containers:
   - image: nginx
-    imagePullPolicy: IfNotPresent
-    name: nginx
+    name: web-app
     resources: {}
   dnsPolicy: ClusterFirst
   restartPolicy: Never
@@ -63,41 +71,60 @@ status: {}
 kubectl create -f pod.yaml
 ```
 
-Alternatively, you can run in one line
+Or, you can run:
 
 ```bash
-kubectl run nginx --image=nginx --restart=Never --dry-run=client -o yaml | kubectl create -n mynamespace -f -
+kubectl run web-app --image=nginx --restart=Never --dry-run=client -n prod -o yaml | kubectl create -n mynamespace -f -
 ```
 
 </p>
 </details>
 
-### Create a busybox pod (using kubectl command) that runs the command "env". Run it and see the output
+### Create a pod named 'tools' with image busybox (using kubectl command) that runs the command "env" (print envs in this pod). Run it and save the output on /mnt/env-busybox.txt
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-kubectl run busybox --image=busybox --command --restart=Never -it --rm -- env # -it will help in seeing the output, --rm will immediately delete the pod after it exits
+kubectl run tools --image=busybox --command --restart=Never -it --rm -- env # -it will help in seeing the output, --rm will immediately delete the pod after it exits
+kubectl run tools --image=busybox --command --restart=Never -it --rm -- env > /mnt/env-busybox.txt
 # or, just run it without -it
-kubectl run busybox --image=busybox --command --restart=Never -- env
+kubectl run tools --image=busybox --command --restart=Never -- env
 # and then, check its logs
-kubectl logs busybox
+kubectl logs tools
 ```
 
 </p>
 </details>
 
-### Create a busybox pod (using YAML) that runs the command "env". Run it and see the output
+### Create a pod named 'tools' with image busybox (using YAML) that runs the command "env" on namespace 'staging'. Run it and see the output
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-# create a  YAML template with this command
-kubectl run busybox --image=busybox --restart=Never --dry-run=client -o yaml --command -- env > envpod.yaml
+# create a  YAML template namespace with this command
+kubectl create ns staging --dry-run=client -o yaml > ns-staging.yaml
 # see it
-cat envpod.yaml
+cat ns-staging.yaml
+```
+
+```YAML
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: null
+  name: staging
+spec: {}
+```
+
+```bash
+# apply
+kubectl apply -f ns-staging.yaml
+# create a  YAML template pod with this command
+kubectl -n staging run tools --image=busybox --restart=Never --dry-run=client -o yaml --command -- env > tools-pod.yaml
+# see it
+cat tools-pod.yaml
 ```
 
 ```YAML
@@ -106,14 +133,15 @@ kind: Pod
 metadata:
   creationTimestamp: null
   labels:
-    run: busybox
-  name: busybox
+    run: tools
+  name: tools
+  namespace: staging
 spec:
   containers:
   - command:
     - env
     image: busybox
-    name: busybox
+    name: tools
     resources: {}
   dnsPolicy: ClusterFirst
   restartPolicy: Never
@@ -122,66 +150,66 @@ status: {}
 
 ```bash
 # apply it and then see the logs
-kubectl apply -f envpod.yaml
-kubectl logs busybox
+kubectl -n staging apply -f tools-pod.yaml
+kubectl -n staging logs tools
 ```
 
 </p>
 </details>
 
-### Get the YAML for a new namespace called 'myns' without creating it
+### View the YAML for a new namespace called 'develop' without creating it
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-kubectl create namespace myns -o yaml --dry-run=client
+kubectl create namespace develop -o yaml --dry-run=client
 ```
 
 </p>
 </details>
 
-### Get the YAML for a new ResourceQuota called 'myrq' with hard limits of 1 CPU, 1G memory and 2 pods without creating it
+### Create the YAML for a new ResourceQuota called 'develop-rq', on namespace develop, with hard limits of 2 CPU, 2G memory and 4 pods without creating it
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-kubectl create quota myrq --hard=cpu=1,memory=1G,pods=2 --dry-run=client -o yaml
+kubectl -n develop create quota develop-rq --hard=cpu=2,memory=2G,pod=4 --dry-run=client -o yaml
 ```
 
 </p>
 </details>
 
-### Get pods on all namespaces
+### Get deploy,pods and services on all namespaces
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-kubectl get po --all-namespaces
+kubectl get po,deploy,svc --all-namespaces
+# or
+kubectl get po,deploy,svc -A
 ```
-Alternatively 
 
-```bash
-kubectl get po -A
-```
 </p>
 </details>
 
-### Create a pod with image nginx called nginx and expose traffic on port 80
+### Create a pod, in staging namespace, with image nginx (version 1.19) called 'web-app' and expose traffic on port 8080
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-kubectl run nginx --image=nginx --restart=Never --port=80
+kubectl create ns staging
+kubectl -n staging run web-app --image=nginx:1.19 --restart=Never --port=8080
+kubectl -n staging exec web-app -it -- curl http://web-app
 ```
 
 </p>
 </details>
 
-### Change pod's image to nginx:1.7.1. Observe that the container will be restarted as soon as the image gets pulled
+### Deploy pod' nginx:1.20 and change pod's image to nginx:1.19. Observe that the container will be restarted as soon as the image gets pulled
 
 <details><summary>show</summary>
 <p>
@@ -189,8 +217,9 @@ kubectl run nginx --image=nginx --restart=Never --port=80
 *Note*: The `RESTARTS` column should contain 0 initially (ideally - it could be any number)
 
 ```bash
+kubectl run nginx --image=nginx:1.20 --restart=Never
 # kubectl set image POD/POD_NAME CONTAINER_NAME=IMAGE_NAME:TAG
-kubectl set image pod/nginx nginx=nginx:1.7.1
+kubectl set image pod/nginx nginx=nginx:1.20
 kubectl describe po nginx # you will see an event 'Container will be killed and recreated'
 kubectl get po nginx -w # watch it
 ```
@@ -202,11 +231,11 @@ Events:
   Type    Reason     Age                  From               Message
   ----    ------     ----                 ----               -------
 [...]
-  Normal  Killing    100s                 kubelet, node3     Container pod1 definition changed, will be restarted
-  Normal  Pulling    100s                 kubelet, node3     Pulling image "nginx:1.7.1"
-  Normal  Pulled     41s                  kubelet, node3     Successfully pulled image "nginx:1.7.1"
-  Normal  Created    36s (x2 over 9m43s)  kubelet, node3     Created container pod1
-  Normal  Started    36s (x2 over 9m43s)  kubelet, node3     Started container pod1
+  Normal  Scheduled  38s   default-scheduler  Successfully assigned default/nginx to node01
+  Normal  Pulling    38s   kubelet            Pulling image "nginx:1.20"
+  Normal  Pulled     34s   kubelet            Successfully pulled image "nginx:1.20" in 3.703299337s (3.70330722s including waiting)
+  Normal  Created    34s   kubelet            Created container nginx
+  Normal  Started    34s   kubelet            Started container nginx
 ```
 
 *Note*: you can check pod's image by running
@@ -247,19 +276,19 @@ kubectl run busybox --image=busybox --rm -it --restart=Never -- wget -O- $(kubec
 </p>
 </details>
 
-### Get pod's YAML
+### Get pod's YAML and save on /mnt/nginx.yaml
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-kubectl get po nginx -o yaml
+kubectl get po nginx -o yaml > /mnt/nginx.yaml
 # or
-kubectl get po nginx -oyaml
+kubectl get po nginx -oyaml > /mnt/nginx.yaml
 # or
-kubectl get po nginx --output yaml
+kubectl get po nginx --output yaml > /mnt/nginx.yaml
 # or
-kubectl get po nginx --output=yaml
+kubectl get po nginx --output=yaml > /mnt/nginx.yaml
 ```
 
 </p>
@@ -310,6 +339,7 @@ kubectl logs nginx --previous
 
 ```bash
 kubectl exec -it nginx -- /bin/sh
+kubectl delete po nginx
 ```
 
 </p>
@@ -324,6 +354,7 @@ kubectl exec -it nginx -- /bin/sh
 kubectl run busybox --image=busybox -it --restart=Never -- echo 'hello world'
 # or
 kubectl run busybox --image=busybox -it --restart=Never -- /bin/sh -c 'echo hello world'
+kubectl delete po busybox
 ```
 
 </p>
@@ -342,23 +373,26 @@ kubectl get po # nowhere to be found :)
 </p>
 </details>
 
-### Create an nginx pod and set an env value as 'var1=val1'. Check the env value existence within the pod
+### Create an nginx pod and set as envs value as 'var1=val1' and 'var2=val2'. Check the envs values existing within the pod
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-kubectl run nginx --image=nginx --restart=Never --env=var1=val1
+kubectl run nginx --image=nginx --restart=Never --env=var1=val1 --env=var2=val2
 # then
 kubectl exec -it nginx -- env
+kubectl exec -it nginx -- printenv
 # or
 kubectl exec -it nginx -- sh -c 'echo $var1'
+kubectl exec -it nginx -- sh -c 'echo $var2'
 # or
-kubectl describe po nginx | grep val1
+kubectl describe po nginx | grep -A2 Environment:
+kubectl delete po nginx
 # or
-kubectl run nginx --restart=Never --image=nginx --env=var1=val1 -it --rm -- env
+kubectl run nginx --restart=Never --image=nginx --env=var1=val1 --env=var2=val2 -it --rm -- env
 # or
-kubectl run nginx --image nginx --restart=Never --env=var1=val1 -it --rm -- sh -c 'echo $var1'
+kubectl run nginx --image nginx --restart=Never --env=var1=val1 --env=var2=val2 -it --rm -- sh -c 'echo $var1 $var2'
 ```
 
 </p>

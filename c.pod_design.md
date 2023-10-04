@@ -12,17 +12,19 @@
 ## Labels and Annotations
 kubernetes.io > Documentation > Concepts > Overview > Working with Kubernetes Objects > [Labels and Selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors)
 
-### Create 3 pods with names nginx1,nginx2,nginx3. All of them should have the label app=v1
+### Create 3 pods with names nginx1,nginx2,nginx3 in namespace staging. All of them should have the label app=v1
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-kubectl run nginx1 --image=nginx --restart=Never --labels=app=v1
-kubectl run nginx2 --image=nginx --restart=Never --labels=app=v1
-kubectl run nginx3 --image=nginx --restart=Never --labels=app=v1
+kubectl create ns staging
+kubectl -n staging run nginx1 --image=nginx --restart=Never --labels=app=v1
+kubectl -n staging run nginx2 --image=nginx --restart=Never --labels=app=v1
+kubectl -n staging run nginx3 --image=nginx --restart=Never --labels=app=v1
 # or
-for i in `seq 1 3`; do kubectl run nginx$i --image=nginx -l app=v1 ; done
+kubectl create ns staging
+for i in `seq 1 3`; do kubectl -n staging run nginx$i --image=nginx -l app=v1 ; done
 ```
 
 </p>
@@ -34,7 +36,9 @@ for i in `seq 1 3`; do kubectl run nginx$i --image=nginx -l app=v1 ; done
 <p>
 
 ```bash
-kubectl get po --show-labels
+kubectl -n staging get po --show-labels
+# or
+kubectl -n staging get po -o wide --show-labels
 ```
 
 </p>
@@ -46,7 +50,8 @@ kubectl get po --show-labels
 <p>
 
 ```bash
-kubectl label po nginx2 app=v2 --overwrite
+kubectl -n staging label po nginx2 app=v2 --overwrite
+kubectl -n staging get po --show-labels
 ```
 
 </p>
@@ -58,9 +63,9 @@ kubectl label po nginx2 app=v2 --overwrite
 <p>
 
 ```bash
-kubectl get po -L app
+kubectl -n staging get po -L app
 # or
-kubectl get po --label-columns=app
+kubectl -n staging get po --label-columns=app
 ```
 
 </p>
@@ -72,35 +77,36 @@ kubectl get po --label-columns=app
 <p>
 
 ```bash
-kubectl get po -l app=v2
+kubectl -n staging get po -l app=v2
 # or
-kubectl get po -l 'app in (v2)'
+kubectl -n staging get po -l 'app in (v2)'
 # or
-kubectl get po --selector=app=v2
+kubectl -n staging get po --selector=app=v2
 ```
 
 </p>
 </details>
 
-### Add a new label tier=web to all pods having 'app=v2' or 'app=v1' labels
+### Add a new label tier=web abd env=staging to all pods having 'app=v2' or 'app=v1' labels
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-kubectl label po -l "app in(v1,v2)" tier=web
+kubectl -n staging label po -l "app in(v1,v2)" tier=web env=staging
+kubectl -n staging get po --show-labels
 ```
 </p>
 </details>
 
 
-### Add an annotation 'owner: marketing' to all pods having 'app=v2' label
+### Add an annotation 'owner: marketing' to all pods having 'app=v2' labels.
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-kubectl annotate po -l "app=v2" owner=marketing
+kubectl -n staging annotate po -l "app=v2" owner=marketing
 ```
 </p>
 </details>
@@ -111,28 +117,29 @@ kubectl annotate po -l "app=v2" owner=marketing
 <p>
 
 ```bash
-kubectl label po nginx1 nginx2 nginx3 app-
+kubectl -n staging label po nginx1 nginx2 nginx3 app-
 # or
-kubectl label po nginx{1..3} app-
+kubectl -n staging label po nginx{1..3} app-
 # or
-kubectl label po -l app app-
+kubectl -n staging label po -l app app-
 ```
 
 </p>
 </details>
 
-### Annotate pods nginx1, nginx2, nginx3 with "description='my description'" value
+### Annotate pods nginx1, nginx2, nginx3 with "description='environment staging'" value
 
 <details><summary>show</summary>
 <p>
 
 
 ```bash
-kubectl annotate po nginx1 nginx2 nginx3 description='my description'
-
+kubectl -n staging annotate po nginx1 nginx2 nginx3 description='environment staging'
+kubectl -n staging describe po nginx2 | grep -A4 'Annotations'
 #or
 
-kubectl annotate po nginx{1..3} description='my description'
+kubectl -n staging annotate po nginx{1..3} description='environment staging'
+kubectl -n staging describe po nginx1 | grep -A4 'Annotations'
 ```
 
 </p>
@@ -144,18 +151,18 @@ kubectl annotate po nginx{1..3} description='my description'
 <p>
 
 ```bash
-kubectl annotate pod nginx1 --list
+kubectl -n staging annotate pod nginx1 --list
 
 # or
 
-kubectl describe po nginx1 | grep -i 'annotations'
+kubectl -n staging describe po nginx1 | grep -A4 'Annotations'
 
 # or
 
-kubectl get po nginx1 -o custom-columns=Name:metadata.name,ANNOTATIONS:metadata.annotations.description
+kubectl -n staging get po nginx1 -o custom-columns=Name:metadata.name,ANNOTATIONS:metadata.annotations.description
 ```
 
-As an alternative to using `| grep` you can use jsonPath like `kubectl get po nginx1 -o jsonpath='{.metadata.annotations}{"\n"}'`
+As an alternative to using `| grep` you can use jsonPath like `kubectl -n staging get po nginx1 -o jsonpath='{.metadata.annotations}{"\n"}'`
 
 </p>
 </details>
@@ -166,7 +173,7 @@ As an alternative to using `| grep` you can use jsonPath like `kubectl get po ng
 <p>
 
 ```bash
-kubectl annotate po nginx{1..3} description-
+kubectl -n staging annotate po nginx{1..3} description-
 ```
 
 </p>
@@ -178,7 +185,7 @@ kubectl annotate po nginx{1..3} description-
 <p>
 
 ```bash
-kubectl delete po nginx{1..3}
+kubectl -n staging delete po nginx{1..3}
 ```
 
 </p>
@@ -194,23 +201,38 @@ kubectl delete po nginx{1..3}
 Add the label to a node:
 
 ```bash
-kubectl label nodes <your-node-name> accelerator=nvidia-tesla-p100
 kubectl get nodes --show-labels
+kubectl label nodes <your-node-name> accelerator=nvidia-tesla-p100
 ```
 
 We can use the 'nodeSelector' property on the Pod YAML:
+```
+k run cuda-test --image=nginx $do > cuda-teste.yaml
+```
 
+Include nodeSelector with label.
 ```YAML
 apiVersion: v1
 kind: Pod
 metadata:
+  labels:
+    run: cuda-test
   name: cuda-test
 spec:
   containers:
-    - name: cuda-test
-      image: "k8s.gcr.io/cuda-vector-add:v0.1"
-  nodeSelector: # add this
-    accelerator: nvidia-tesla-p100 # the selection label
+  - image: k8s.gcr.io/cuda-vector-add:v0.1
+    name: cuda-test
+    resources: {}
+  dnsPolicy: ClusterFirst
+  nodeSelector: # add     
+    accelerator: nvidia-tesla-p100 ## add               
+  restartPolicy: Always
+status: {}
+```
+Apply
+
+```
+ k apply -f cuda-teste.yaml
 ```
 
 You can easily find out where in the YAML it should be placed by:
@@ -241,10 +263,18 @@ spec:
     ...
 ```
 
+Get po with node
+
+```
+kubectl get po -o wide
+NAME        READY   STATUS    RESTARTS   AGE   IP            NODE     NOMINATED NODE   READINESS GATES
+cuda-test   1/1     Running   0          83s   192.168.1.3   node01   <none>           <none>
+```
+
 </p>
 </details>
 
-### Taint a node with key `tier` and value `frontend` with effect `NoShedule`. Then, create a pod that tolerates this taint.
+### Taint a node with key `tier` and value `frontend` with effect `NoShedule`. Then, create a nginx pod named web, that tolerates this taint.
 
 <details><summary>show</summary>
 <p>
@@ -252,9 +282,15 @@ spec:
 Taint a node:
 
 ```bash
-kubectl taint node node1 tier=frontend:NoSchedule # key=value:Effect
-kubectl describe node node1 # view the taints on a node
+kubectl taint node node01 tier=frontend:NoSchedule # key=value:Effect
+k describe node node01 | grep -A1 'Taint' # view the taints on a node
 ```
+
+Generate a yaml this pod.
+```
+k run web --image=nginx --dry-run=client -o yaml > nginx
+```
+
 
 And to tolerate the taint:
 ```yaml
@@ -264,13 +300,19 @@ metadata:
   name: frontend
 spec:
   containers:
-  - name: nginx
+  - name: web
     image: nginx
   tolerations:
   - key: "tier"
     operator: "Equal"
     value: "frontend"
     effect: "NoSchedule"
+```
+
+Get po with node
+
+```
+kubectl get po -o wide
 ```
 
 </p>
@@ -285,6 +327,12 @@ spec:
 vi pod.yaml
 ```
 
+Remove po web
+```
+kubectl delete po web
+```
+
+Change yaml for this po
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -319,12 +367,8 @@ kubernetes.io > Documentation > Concepts > Workloads > Workload Resources > [Dep
 <p>
 
 ```bash
-kubectl create deployment nginx  --image=nginx:1.18.0  --dry-run=client -o yaml > deploy.yaml
-vi deploy.yaml
-# change the replicas field from 1 to 2
-# add this section to the container spec and save the deploy.yaml file
-# ports:
-#   - containerPort: 80
+kubectl create deployment nginx  --image=nginx:1.18.0  --replicas=2 --dry-run=client -o yaml > deploy.yaml
+cat deploy.yaml # view file estruture
 kubectl apply -f deploy.yaml
 ```
 
@@ -341,6 +385,15 @@ kubectl create deploy nginx --image=nginx:1.18.0 --replicas=2 --port=80
 
 </p>
 </details>
+
+### Change number of replicas, 2 for 3, in this deploy, using patch recourse
+
+```
+kubectl describe deploy nginx | grep Replicas:
+kubectl patch deployment nginx --type='merge' -p '{"spec":{"replicas":3}}'
+kubectl describe deploy nginx | grep Replicas:
+```
+
 
 ### View the YAML of this deployment
 
@@ -425,6 +478,8 @@ kubectl rollout history deploy nginx
 kubectl get deploy nginx
 kubectl get rs # check that a new replica set has been created
 kubectl get po
+# or
+kubectl get po -o yaml | grep image:
 ```
 
 </p>

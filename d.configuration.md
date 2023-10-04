@@ -138,6 +138,8 @@ status: {}
 ```bash
 kubectl create -f pod.yaml
 kubectl exec -it nginx -- env | grep option # will show 'option=val5'
+# or
+kubectl exec -it nginx -- env
 ```
 
 </p>
@@ -179,6 +181,8 @@ status: {}
 ```bash
 kubectl create -f pod.yaml
 kubectl exec -it nginx -- env 
+# or
+kubectl exec -it pod/nginx-another -- env | grep var
 ```
 
 </p>
@@ -224,6 +228,8 @@ status: {}
 ```bash
 kubectl create -f pod.yaml
 kubectl exec -it nginx -- /bin/sh
+#or
+kubectl exec pod/nginx -it /bin/bash
 cd /etc/lala
 ls # will show var8 var9
 cat var8 # will show val8
@@ -265,6 +271,11 @@ spec:
   dnsPolicy: ClusterFirst
   restartPolicy: Never
 status: {}
+```
+
+Get ID on pod.
+```bash
+kubectl exec pod/nginx -it id
 ```
 
 </p>
@@ -310,14 +321,14 @@ status: {}
 
 kubernetes.io > Documentation > Tasks > Configure Pods and Containers > [Assign CPU Resources to Containers and Pods](https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/)
 
-### Create an nginx pod with requests cpu=100m,memory=256Mi and limits cpu=200m,memory=512Mi
+### Create an nginx pod with requests cpu=100m,memory=64Mi and limits cpu=200m,memory=256Mi
 
 <details><summary>show</summary>
 <p>
 
 ```bash
-kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml
-vi pod.yaml
+kubectl run nginx-requests --image=nginx --restart=Never --dry-run=client -o yaml > pod-requests.yaml
+vi pod-requests.yaml
 ```
 
 ```YAML
@@ -326,23 +337,27 @@ kind: Pod
 metadata:
   creationTimestamp: null
   labels:
-    run: nginx
-  name: nginx
+    run: nginx-requests
+  name: nginx-requests
 spec:
   containers:
   - image: nginx
-    name: nginx
+    name: nginx-requests
     resources:
       requests:
-        memory: "256Mi"
+        memory: "64Mi"
         cpu: "100m"
-      limits:    
-        memory: "512Mi"
+      limits:
+        memory: "256Mi"
         cpu: "200m"
   dnsPolicy: ClusterFirst
   restartPolicy: Always
 status: {}
 ``` 
+Verific Limits and Requests
+```bash
+kubectl describe pod/nginx-requests
+```
 
 </p>
 </details>
@@ -397,15 +412,16 @@ kubectl describe limitrange ns-memory-limit -n one
 <details><summary>show</summary>
 <p>
 
-vi 2.yaml
+kubectl run nginx-requests --image=nginx --restart=Never --namespace one --dry-run=client -o yaml > pod-limitrange.yaml
+vi pod-limitrange.yaml
 ```YAML
 apiVersion: v1
 kind: Pod
 metadata:
   creationTimestamp: null
   labels:
-    run: nginx
-  name: nginx
+    run: nginx-limitrange
+  name: nginx-limitrange
   namespace: one
 spec:
   containers:
@@ -420,8 +436,29 @@ status: {}
 ``` 
 
 ```bash
-kubectl apply -f 2.yaml
+kubectl apply -f pod-limitrange.yaml
 ```
+
+Change Request Memory to 750Mi
+
+vi pod-limitrange.yaml
+```YAML
+....
+    resources:
+      requests:
+        memory: "750Mi"
+....
+
+```
+Apply
+```bash
+kubectl replace -f pod-limitrange.yaml
+```
+We will have the following return message.
+```
+The Pod "nginx-limitrange" is invalid: spec.containers[0].resources.requests: Invalid value: "750Mi": must be less than or equal to memory limit of 500Mi
+```
+
 </p>
 </details>
 
