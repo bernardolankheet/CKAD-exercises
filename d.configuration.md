@@ -486,6 +486,7 @@ apiVersion: v1
 kind: ResourceQuota
 metadata:
   name: my-rq
+  namespace: one
 spec:
   hard:
     requests.cpu: "1"
@@ -496,6 +497,12 @@ spec:
 
 ```bash
 kubectl apply -f rq-one.yaml
+```
+
+Verific Resource Quota.
+
+```bash
+kubectl describe quota
 ```
 </p>
 </details>
