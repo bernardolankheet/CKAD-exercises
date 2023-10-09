@@ -198,6 +198,7 @@ kubectl delete po busybox
 ```bash
 kubectl run busybox --restart=Never --image=busybox -- notexist
 kubectl logs busybox # will bring nothing! container never started
+kubectl get po/busybox # Status StartError
 kubectl describe po busybox # in the events section, you'll see the error
 # also...
 kubectl get events | grep -i error # you'll see the error here as well
@@ -215,6 +216,15 @@ kubectl delete po busybox --force --grace-period=0
 
 ```bash
 kubectl top nodes
+```
+
+Obs: if you used killercode to run this lab, playgrounds scenarios don't have installed metrics-server.
+
+to install:
+
+```bash
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+kubectl describe deployment.apps/metrics-server --namespace kube-system
 ```
 
 </p>
