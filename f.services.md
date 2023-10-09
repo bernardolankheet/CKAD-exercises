@@ -36,7 +36,9 @@ kubectl get ep # endpoints
 ```bash
 kubectl get svc nginx # get the IP (something like 10.108.93.130)
 kubectl run busybox --rm --image=busybox -it --restart=Never -- sh
+## connect on pod
 wget -O- IP:80
+## exit
 exit
 ```
 
