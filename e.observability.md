@@ -54,6 +54,8 @@ kubectl delete -f pod.yaml
 
 ```bash
 kubectl explain pod.spec.containers.livenessProbe # get the exact names
+# or
+kubectl explain pod.spec.containers.livenessProbe --recursive # get format extruture.
 ```
 
 ```YAML
@@ -156,7 +158,7 @@ kubectl get events -o json | jq -r '.items[] | select(.message | contains("faile
 
 ## Logging
 
-### Create a busybox pod that runs `i=0; while true; do echo "$i: $(date)"; i=$((i+1)); sleep 1; done`. Check its logs
+### Create a busybox pod that runs `i=0; while true; do echo "$i: $(date)"; i=$((i+1)); sleep 1; done`. And check its logs and export /tmp/logsbusybox-pod.txt
 
 <details><summary>show</summary>
 <p>
@@ -164,6 +166,7 @@ kubectl get events -o json | jq -r '.items[] | select(.message | contains("faile
 ```bash
 kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c 'i=0; while true; do echo "$i: $(date)"; i=$((i+1)); sleep 1; done'
 kubectl logs busybox -f # follow the logs
+kubectl logs busybox > /tmp/logsbusybox-pod.txt
 ```
 
 </p>
