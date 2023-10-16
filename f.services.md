@@ -23,6 +23,8 @@ kubectl run nginx --image=nginx --restart=Never --port=80 --expose
 ```bash
 kubectl get svc nginx # services
 kubectl get ep # endpoints
+# or
+kubectl get ep,svc nginx
 ```
 
 </p>
@@ -171,7 +173,7 @@ kubectl get endpoints foo # you will see the IPs of the three replica pods, list
 <p>
 
 ```bash
-kubectl get svc # get the foo service ClusterIP
+kubectl get svc -l app=foo # get the foo service ClusterIP
 kubectl run busybox --image=busybox -it --rm --restart=Never -- sh
 wget -O- foo:6262 # DNS works! run it many times, you'll see different pods responding
 wget -O- <SERVICE_CLUSTER_IP>:6262 # ClusterIP works as well
